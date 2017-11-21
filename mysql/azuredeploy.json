@@ -1,0 +1,124 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2014-04-01-preview/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "webSiteName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of Azure WebApp"
+            }
+        },
+        "DBLogin": {
+            "minLength": 1,
+            "type": "string",
+            "metadata": {
+                "description": "Database login name"
+            }
+        },
+        "DBPassword": {
+            "minLength": 8,
+            "maxLength": 128,
+            "type": "securestring",
+            "metadata": {
+                "description": "Database password"
+            }
+        }
+    },
+    "variables": {
+        "databaseName": "[concat(parameters('webSiteName'), 'database')]",
+        "serverName": "[parameters('webSiteName')]",
+        "hostingPlanName": "[parameters('webSiteName')]"
+    },
+    "resources": [{
+            "type": "Microsoft.Web/serverfarms",
+            "sku": {
+                "Tier": "Standard",
+                "Name": "S1"
+            },
+            "name": "[variables('hostingPlanName')]",
+            "apiVersion": "2016-09-01",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "name": "[variables('hostingPlanName')]",
+                "workerSizeId": "1",
+                "reserved": true,
+                "numberOfWorkers": 0,
+                "hostingEnvironment": ""
+            }
+        },
+        {
+            "type": "Microsoft.Web/sites",
+            "name": "[parameters('webSiteName')]",
+            "apiVersion": "2014-06-01",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "name": "[parameters('webSiteName')]",
+                "serverFarmId": "[variables('hostingPlanName')]",
+                "hostingEnvironment": ""
+            },
+            "resources": [{
+                "type": "config",
+                "name": "connectionstrings",
+                "apiVersion": "2014-06-01",
+                "properties": {
+                    "defaultConnection": {
+                        "value": "[concat('Database=', variables('databaseName'), ';Data Source=', variables('serverName'), '.mysql.database.azure.com;User Id=', parameters('DBLogin'),'@', variables('serverName'),';Password=', parameters('DBPassword'))]",
+                        "type": "MySQL"
+                    }
+                },
+                "dependsOn": [
+                    "[concat('Microsoft.Web/sites/', parameters('webSiteName'))]"
+                ]
+            }],
+            "dependsOn": [
+                "[concat('Microsoft.Web/serverfarms/', variables('hostingPlanName'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Sql/servers",
+            "sku": {
+                "name": "MYSQLB50",
+                "tier": "Basic",
+                "capacity": "50",
+                "size": "51200",
+                "family": "SkuFamily"
+            },
+            "kind": "",
+            "name": "[variables('serverName')]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "version": "5.7",
+                "administratorLogin": "[parameters('DBLogin')]",
+                "administratorLoginPassword": "[parameters('DBPassword')]",
+                "storageMB": "51200"
+            },
+            "resources": [{
+                    "type": "virtualNetworkRules",
+                    "name": "[concat(variables('serverName'),'firewall')]",
+                    "apiVersion": "2015-05-01-preview",
+                    "location": "[resourceGroup().location]",
+                    "properties": {
+                        "startIpAddress": "0.0.0.0",
+                        "endIpAddress": "255.255.255.255"
+                    },
+                    "dependsOn": [
+                        "[concat('Microsoft.DBforMySQL/servers/', variables('serverName'))]"
+                    ]
+                },
+                {
+                    "type": "virtualNetworkRules",
+                    "name": "[variables('databaseName')]",
+                    "apiVersion": "2015-05-01-preview",
+                    "properties": {
+                        "charset": "utf8",
+                        "collation": "utf8_general_ci"
+                    },
+                    "dependsOn": [
+                        "[concat('Microsoft.DBforMySQL/servers/', variables('serverName'))]"
+                    ]
+                }
+            ]
+        }
+    ]
+}
