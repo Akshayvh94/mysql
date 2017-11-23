@@ -1,15 +1,15 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
-    "contentVersion": "1.0.0.0",
-    "parameters": {
-        "webSiteName": {
-            "value": ""
-        },
-        "DBLogin": {
-            "value": ""
-        },
-        "DBPassword": {
-            "value": ""
-        }
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "webSiteName": {
+      "value": "null"
+    },
+    "DBLogin": {
+      "value": null
+    },
+    "DBPassword": {
+      "value": null
     }
+  }
 }
