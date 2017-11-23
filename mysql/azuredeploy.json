@@ -3,14 +3,14 @@
     "contentVersion": "1.0.0.0",
     "parameters": {
         "webSiteName": {
-            "type": "string",
+            "type": "String",
             "metadata": {
                 "description": "Name of Azure WebApp"
             }
         },
         "DBLogin": {
             "minLength": 1,
-            "type": "string",
+            "type": "String",
             "metadata": {
                 "description": "Database login name"
             }
@@ -18,7 +18,7 @@
         "DBPassword": {
             "minLength": 8,
             "maxLength": 128,
-            "type": "securestring",
+            "type": "SecureString",
             "metadata": {
                 "description": "Database password"
             }
@@ -29,7 +29,8 @@
         "serverName": "[parameters('webSiteName')]",
         "hostingPlanName": "[parameters('webSiteName')]"
     },
-    "resources": [{
+    "resources": [
+        {
             "type": "Microsoft.Web/serverfarms",
             "sku": {
                 "Tier": "Standard",
@@ -49,43 +50,38 @@
         {
             "type": "Microsoft.Web/sites",
             "name": "[parameters('webSiteName')]",
-            "apiVersion": "2014-06-01",
+            "apiVersion": "2016-03-01",
             "location": "[resourceGroup().location]",
             "properties": {
                 "name": "[parameters('webSiteName')]",
                 "serverFarmId": "[variables('hostingPlanName')]",
                 "hostingEnvironment": ""
             },
-            "resources": [{
-                "type": "config",
-                "name": "connectionstrings",
-                "apiVersion": "2014-06-01",
-                "properties": {
-                    "defaultConnection": {
-                        "value": "[concat('Database=', variables('databaseName'), ';Data Source=', variables('serverName'), '.mysql.database.azure.com;User Id=', parameters('DBLogin'),'@', variables('serverName'),';Password=', parameters('DBPassword'))]",
-                        "type": "MySQL"
-                    }
-                },
-                "dependsOn": [
-                    "[concat('Microsoft.Web/sites/', parameters('webSiteName'))]"
-                ]
-            }],
+            "resources": [
+                {
+                    "type": "config",
+                    "name": "connectionstrings",
+                    "apiVersion": "2015-04-01",
+                    "properties": {
+                        "defaultConnection": {
+                            "value": "[concat('Database=', variables('databaseName'), ';Data Source=', variables('serverName'), '.mysql.database.azure.com;User Id=', parameters('DBLogin'),'@', variables('serverName'),';Password=', parameters('DBPassword'))]",
+                            "type": "MySQL"
+                        }
+                    },
+                    "dependsOn": [
+                        "[concat('Microsoft.Web/sites/', parameters('webSiteName'))]"
+                    ]
+                }
+            ],
             "dependsOn": [
                 "[concat('Microsoft.Web/serverfarms/', variables('hostingPlanName'))]"
             ]
         },
         {
-            "type": "Microsoft.Sql/servers",
-            "sku": {
-                "name": "MYSQLB50",
-                "tier": "Basic",
-                "capacity": "50",
-                "size": "51200",
-                "family": "SkuFamily"
-            },
+            "type": "Microsoft.DBforMySQL/servers",
             "kind": "",
             "name": "[variables('serverName')]",
-            "apiVersion": "2015-05-01-preview",
+            "apiVersion": "2016-02-01-privatepreview",
             "location": "[resourceGroup().location]",
             "properties": {
                 "version": "5.7",
@@ -93,10 +89,11 @@
                 "administratorLoginPassword": "[parameters('DBPassword')]",
                 "storageMB": "51200"
             },
-            "resources": [{
-                    "type": "virtualNetworkRules",
+            "resources": [
+                {
+                    "type": "firewallrules",
                     "name": "[concat(variables('serverName'),'firewall')]",
-                    "apiVersion": "2015-05-01-preview",
+                    "apiVersion": "2016-02-01-privatepreview",
                     "location": "[resourceGroup().location]",
                     "properties": {
                         "startIpAddress": "0.0.0.0",
@@ -107,9 +104,9 @@
                     ]
                 },
                 {
-                    "type": "virtualNetworkRules",
+                    "type": "databases",
                     "name": "[variables('databaseName')]",
-                    "apiVersion": "2015-05-01-preview",
+                    "apiVersion": "2016-02-01-privatepreview",
                     "properties": {
                         "charset": "utf8",
                         "collation": "utf8_general_ci"
