@@ -2,84 +2,89 @@
     "$schema": "http://schema.management.azure.com/schemas/2014-04-01-preview/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "webSiteName": {
-            "type": "String",
-            "metadata": {
-                "description": "Name of Azure WebApp"
-            }
-        },
+    
         "DBLogin": {
-            "minLength": 1,
-            "type": "String",
-            "metadata": {
-                "description": "Database login name"
-            }
+            "type": "String"
         },
         "DBPassword": {
-            "minLength": 8,
-            "maxLength": 128,
-            "type": "SecureString",
-            "metadata": {
-                "description": "Database password"
-            }
+            "type": "SecureString"
+        },
+
+        "webSiteName": {
+            "type": "String"
         }
+
     },
-    "variables": {
+     "variables": {
         "databaseName": "[concat(parameters('webSiteName'), 'database')]",
         "serverName": "[parameters('webSiteName')]",
         "hostingPlanName": "[parameters('webSiteName')]"
     },
     "resources": [
         {
+            "type": "Microsoft.Web/sites",
+            "name": "[parameters('webSiteName')]",
+            "apiVersion": "2016-03-01",
+            "location": "[resourceGroup().location]",         
+            "properties": {
+                "siteConfig": {
+                    "connectionStrings": [
+                        {
+                            "name": "defaultConnection",
+                            "ConnectionString": "[concat('Database=', variables('databaseName'), ';Data Source=', variables('serverName') ,'.mysql.database.azure.com;User Id=',parameters('DBLogin'),'@',variables('serverName') ,';Password=',parameters('DBPassword'))]",
+                            "type": "MySQL"
+                        }
+                    ]
+                },
+                "name": "[parameters('webSiteName')]",
+                "serverFarmId": "[variables('hostingPlanName')]",
+                "hostingEnvironment": ""              
+            },
+            "dependsOn": [
+                "[concat('Microsoft.Web/serverfarms/', variables('hostingPlanName'))]"
+            ],
+            "resources": [
+                {
+                    "apiVersion": "2015-08-01",
+                    "name": "web",
+                    "type": "config",
+                    "dependsOn": [
+                        "[concat('Microsoft.Web/sites/', parameters('webSiteName'))]"
+                    ],
+                    "properties": {
+                        "javaVersion": "1.8",
+                        "javaContainer": "TOMCAT",
+                        "javaContainerVersion": "8.0"
+                    }
+                }
+            ]
+            
+        },
+        {
             "type": "Microsoft.Web/serverfarms",
             "sku": {
-                "Tier": "Standard",
-                "Name": "S1"
+                "Tier": "Free",
+                "Name": "F1"
             },
             "name": "[variables('hostingPlanName')]",
             "apiVersion": "2016-09-01",
-            "location": "[resourceGroup().location]",
+            "location": "[resourcegroup().location]",
             "properties": {
                 "name": "[variables('hostingPlanName')]",
-                "workerSizeId": "1",
-                "reserved": true,
-                "numberOfWorkers": 0,
+                "workerSizeId": "0",
+                "numberOfWorkers": "1",
                 "hostingEnvironment": ""
             }
         },
         {
-            "type": "Microsoft.Web/sites",
-            "name": "[parameters('webSiteName')]",
-            "apiVersion": "2016-03-01",
-            "location": "[resourceGroup().location]",
-            "properties": {
-                "name": "[parameters('webSiteName')]",
-                "serverFarmId": "[variables('hostingPlanName')]",
-                "hostingEnvironment": ""
-            },
-            "resources": [
-                {
-                    "type": "config",
-                    "name": "connectionstrings",
-                    "apiVersion": "2015-04-01",
-                    "properties": {
-                        "defaultConnection": {
-                            "value": "[concat('Database=', variables('databaseName'), ';Data Source=', variables('serverName'), '.mysql.database.azure.com;User Id=', parameters('DBLogin'),'@', variables('serverName'),';Password=', parameters('DBPassword'))]",
-                            "type": "MySQL"
-                        }
-                    },
-                    "dependsOn": [
-                        "[concat('Microsoft.Web/sites/', parameters('webSiteName'))]"
-                    ]
-                }
-            ],
-            "dependsOn": [
-                "[concat('Microsoft.Web/serverfarms/', variables('hostingPlanName'))]"
-            ]
-        },
-        {
             "type": "Microsoft.DBforMySQL/servers",
-            "kind": "",
+            "sku": {
+                "name": "MYSQLB50",
+                "tier": "Basic",
+                "capacity": "50",
+                "size": "51200",
+                "family": "SkuFamily"
+            },
             "name": "[variables('serverName')]",
             "apiVersion": "2016-02-01-privatepreview",
             "location": "[resourceGroup().location]",
@@ -87,12 +92,13 @@
                 "version": "5.7",
                 "administratorLogin": "[parameters('DBLogin')]",
                 "administratorLoginPassword": "[parameters('DBPassword')]",
-                "storageMB": "51200"
+                "storageMB": "51200",
+                "sslEnforcement": "Disabled"
             },
             "resources": [
                 {
                     "type": "firewallrules",
-                    "name": "[concat(variables('serverName'),'firewall')]",
+                    "name": "AllowAll",
                     "apiVersion": "2016-02-01-privatepreview",
                     "location": "[resourceGroup().location]",
                     "properties": {
@@ -100,6 +106,7 @@
                         "endIpAddress": "255.255.255.255"
                     },
                     "dependsOn": [
+                        "[concat('Microsoft.DBforMySQL/servers/', variables('serverName'), '/databases/' , variables('databaseName'))]",
                         "[concat('Microsoft.DBforMySQL/servers/', variables('serverName'))]"
                     ]
                 },
@@ -115,6 +122,7 @@
                         "[concat('Microsoft.DBforMySQL/servers/', variables('serverName'))]"
                     ]
                 }
+               
             ]
         }
     ]
