@@ -3,13 +3,13 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "DBLogin": {
-      "value": null
+      "value": "mysqladmin"
     },
     "DBPassword": {
-      "value": null
+      "value": "P2ssw0rd"
     },
     "webSiteName": {
-      "value": null
+      "value": ""
     }
   }
 }
