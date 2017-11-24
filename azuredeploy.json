@@ -2,30 +2,30 @@
     "$schema": "http://schema.management.azure.com/schemas/2014-04-01-preview/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-    
         "DBLogin": {
-            "type": "String"
+            "type": "String",
+            "defaultValue": "mysqladmin"
         },
         "DBPassword": {
-            "type": "SecureString"
+            "type": "SecureString",
+            "defaultValue": "P2ssw0rd"
         },
-
         "webSiteName": {
             "type": "String"
         }
-
     },
-     "variables": {
+    "variables": {
         "databaseName": "[concat(parameters('webSiteName'), 'database')]",
         "serverName": "[parameters('webSiteName')]",
-        "hostingPlanName": "[parameters('webSiteName')]"
+        "hostingPlanName": "[parameters('webSiteName')]",
+        "siteName": "[concat(parameters('webSiteName'),'-app-', uniquestring(resourceGroup().id))]"
     },
     "resources": [
         {
             "type": "Microsoft.Web/sites",
-            "name": "[parameters('webSiteName')]",
+            "name": "[variables('siteName')]",
             "apiVersion": "2016-03-01",
-            "location": "[resourceGroup().location]",         
+            "location": "[resourceGroup().location]",
             "properties": {
                 "siteConfig": {
                     "connectionStrings": [
@@ -36,29 +36,28 @@
                         }
                     ]
                 },
-                "name": "[parameters('webSiteName')]",
+                "name": "[variables('siteName')]",
                 "serverFarmId": "[variables('hostingPlanName')]",
-                "hostingEnvironment": ""              
+                "hostingEnvironment": ""
             },
-            "dependsOn": [
-                "[concat('Microsoft.Web/serverfarms/', variables('hostingPlanName'))]"
-            ],
             "resources": [
                 {
-                    "apiVersion": "2015-08-01",
-                    "name": "web",
                     "type": "config",
-                    "dependsOn": [
-                        "[concat('Microsoft.Web/sites/', parameters('webSiteName'))]"
-                    ],
+                    "name": "web",
+                    "apiVersion": "2015-08-01",
                     "properties": {
                         "javaVersion": "1.8",
                         "javaContainer": "TOMCAT",
                         "javaContainerVersion": "8.0"
-                    }
+                    },
+                    "dependsOn": [
+                        "[concat('Microsoft.Web/sites/', variables('siteName'))]"
+                    ]
                 }
+            ],
+            "dependsOn": [
+                "[concat('Microsoft.Web/serverfarms/', variables('hostingPlanName'))]"
             ]
-            
         },
         {
             "type": "Microsoft.Web/serverfarms",
@@ -122,7 +121,6 @@
                         "[concat('Microsoft.DBforMySQL/servers/', variables('serverName'))]"
                     ]
                 }
-               
             ]
         }
     ]
